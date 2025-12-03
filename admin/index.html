@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Login • Barangay Digital Services</title>
+    <link rel="stylesheet" href="assets/admin-styles.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <script src="assets/admin.js"></script>
+    <script>
+      document.addEventListener('DOMContentLoaded', async () => {
+        const existingUser = await window.brgyAdmin.requireAuth({ redirect: false });
+        if (existingUser) {
+          window.location.href = 'dashboard.html';
+          return;
+        }
+
+        const form = document.querySelector('form');
+        const usernameEl = document.getElementById('username');
+        const passwordEl = document.getElementById('password');
+        const errorEl = document.getElementById('login-error');
+        const submitBtn = form.querySelector('button[type="submit"]');
+
+        form.addEventListener('submit', async (event) => {
+          event.preventDefault();
+          errorEl.textContent = '';
+          submitBtn.disabled = true;
+          submitBtn.classList.add('btn-loading');
+
+          try {
+            await window.brgyAdmin.login(
+              usernameEl.value.trim(),
+              passwordEl.value.trim(),
+            );
+            window.location.href = 'dashboard.html';
+          } catch (err) {
+            errorEl.textContent = err.message || 'Unable to sign in. Please try again.';
+          } finally {
+            submitBtn.disabled = false;
+            submitBtn.classList.remove('btn-loading');
+          }
+        });
+      });
+    </script>
+    <style>
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+      }
+      .login-card { 
+        max-width: 420px; 
+        width: 90%;
+        margin: 0 auto; 
+        padding: 2.5rem; 
+        background: var(--white);
+        border: 1px solid var(--gray-200);
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow-xl);
+      }
+      .login-title { 
+        text-align: center; 
+        margin: 0 0 2rem;
+        font-size: 1.875rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, var(--primary-color), var(--info-color));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+      .form-actions {
+        display: flex;
+        gap: 1rem;
+        margin-top: 1.5rem;
+      }
+      .field.full {
+        grid-column: 1 / -1;
+      }
+      .btn-loading {
+        opacity: 0.7;
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="container page">
+      <div class="login-card">
+        <h2 class="login-title">Admin Portal</h2>
+        <form class="form" onsubmit="handleLogin(event)">
+          <div class="fields">
+            <div class="field full">
+              <label for="username">
+                <i class="fas fa-user"></i>
+                Username
+              </label>
+              <input id="username" required placeholder="Enter your username" />
+            </div>
+            <div class="field full">
+              <label for="password">
+                <i class="fas fa-lock"></i>
+                Password
+              </label>
+              <input id="password" type="password" required placeholder="Enter your password" />
+            </div>
+          </div>
+          <p id="login-error" class="text-center text-danger" style="min-height:1.25rem;"></p>
+          <div class="form-actions" style="justify-content:center;">
+            <button class="btn btn-primary" type="submit">
+              <i class="fas fa-sign-in-alt"></i>
+              Sign In
+            </button>
+          </div>
+        </form>
+      </div>
+    </main>
+  </body>
+  </html>
+
+

@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Manage Accidents • Admin</title>
+    <link rel="stylesheet" href="assets/admin-styles.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  </head>
+  <body>
+    <script src="assets/admin.js"></script>
+    <script src="assets/admin-theme.js"></script>
+    <script>
+      let allAccidents = [];
+      let filteredAccidents = [];
+      let errorEl;
+
+      function render() {
+        const tbody = document.querySelector('tbody');
+        if (filteredAccidents.length === 0) {
+          tbody.innerHTML =
+            '<tr><td colspan="6" class="text-center text-gray-500">No accidents found</td></tr>';
+          return;
+        }
+
+        const rows = filteredAccidents
+          .map((a) => {
+            const sevClass =
+              a.severity === 'High' ? 'danger' : a.severity === 'Moderate' ? 'warning' : 'success';
+            return `
+            <tr>
+              <td class="font-semibold">#${a.id}</td>
+              <td><span class="chip info">${a.type}</span></td>
+              <td>${a.location}</td>
+              <td class="text-sm">${a.datetime}</td>
+              <td><span class="chip ${sevClass}">${a.severity}</span></td>
+              <td class="flex gap-2">
+                <button class="btn btn-primary btn-sm" data-act="edit" data-id="${a.id}">
+                  <i class="fas fa-pen"></i>
+                  Edit
+                </button>
+                <button class="btn btn-secondary btn-sm" data-act="view" data-id="${a.id}">
+                  <i class="fas fa-eye"></i>
+                  View
+                </button>
+              </td>
+            </tr>
+          `;
+          })
+          .join('');
+        tbody.innerHTML = rows;
+      }
+
+      function filterAccidents() {
+        const typeFilter = document.getElementById('type-filter').value;
+        const severityFilter = document.getElementById('severity-filter').value;
+        const search = document.getElementById('search').value.toLowerCase();
+
+        filteredAccidents = allAccidents.filter((a) => {
+          const byType = typeFilter === 'All' || a.type === typeFilter;
+          const bySeverity = severityFilter === 'All' || a.severity === severityFilter;
+          const bySearch =
+            search === '' ||
+            a.location.toLowerCase().includes(search) ||
+            a.type.toLowerCase().includes(search) ||
+            a.id.toString().includes(search);
+          return byType && bySeverity && bySearch;
+        });
+
+        render();
+        updateStats();
+      }
+
+      function updateStats() {
+        const stats = {
+          total: allAccidents.length,
+          road: allAccidents.filter((a) => a.type === 'Road').length,
+          fire: allAccidents.filter((a) => a.type === 'Fire').length,
+          other: allAccidents.filter((a) => a.type !== 'Road' && a.type !== 'Fire').length,
+          high: allAccidents.filter((a) => a.severity === 'High').length,
+          moderate: allAccidents.filter((a) => a.severity === 'Moderate').length,
+          low: allAccidents.filter((a) => a.severity === 'Low').length,
+        };
+        document.getElementById('stat-total').textContent = stats.total;
+        document.getElementById('stat-road').textContent = stats.road;
+        document.getElementById('stat-fire').textContent = stats.fire;
+        document.getElementById('stat-other').textContent = stats.other;
+        document.getElementById('stat-high').textContent = stats.high;
+        document.getElementById('stat-moderate').textContent = stats.moderate;
+        document.getElementById('stat-low').textContent = stats.low;
+      }
+
+      function showEditModal(accident) {
+        const modal = document.getElementById('accident-modal');
+        document.getElementById('modal-id').textContent = `#${accident.id}`;
+        document.getElementById('accident-id').value = accident.id;
+        document.getElementById('accident-type').value = accident.type;
+        document.getElementById('accident-location').value = accident.location;
+        document.getElementById('accident-datetime').value = accident.datetime;
+        document.getElementById('accident-severity').value = accident.severity;
+        modal.classList.add('active');
+      }
+
+      function hideEditModal() {
+        document.getElementById('accident-modal').classList.remove('active');
+      }
+
+      async function loadAccidents() {
+        try {
+          errorEl.textContent = '';
+          allAccidents = await window.brgyAdmin.listAccidents();
+          filteredAccidents = [...allAccidents];
+          render();
+          updateStats();
+        } catch (err) {
+          errorEl.textContent = err.message || 'Unable to load accidents.';
+        }
+      }
+
+      document.addEventListener('DOMContentLoaded', async () => {
+        errorEl = document.getElementById('accidents-error');
+        await window.brgyAdmin.requireAuth();
+        await loadAccidents();
+
+        document.getElementById('type-filter').addEventListener('change', filterAccidents);
+        document.getElementById('severity-filter').addEventListener('change', filterAccidents);
+        document.getElementById('search').addEventListener('input', filterAccidents);
+
+        document.body.addEventListener('click', (e) => {
+          const btn = e.target.closest('button[data-act]');
+          if (!btn) return;
+          const id = Number(btn.getAttribute('data-id'));
+          const act = btn.getAttribute('data-act');
+          if (act === 'edit') {
+            const accident = allAccidents.find((a) => a.id === id);
+            if (accident) showEditModal(accident);
+          }
+          if (act === 'view') {
+            const accident = allAccidents.find((a) => a.id === id);
+            if (accident) {
+              alert(
+                `Accident ${accident.id}\nType: ${accident.type}\nLocation: ${accident.location}\nDate/Time: ${accident.datetime}\nSeverity: ${accident.severity}`,
+              );
+            }
+          }
+        });
+
+        document.getElementById('accident-form').addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const id = Number(document.getElementById('accident-id').value);
+          const type = document.getElementById('accident-type').value;
+          const location = document.getElementById('accident-location').value.trim();
+          const datetime = document.getElementById('accident-datetime').value.trim();
+          const severity = document.getElementById('accident-severity').value;
+          if (!type || !location || !datetime || !severity) return;
+
+          await window.brgyAdmin.updateAccident(id, { type, location, datetime, severity });
+          await loadAccidents();
+          hideEditModal();
+        });
+
+        document.getElementById('modal-close').addEventListener('click', hideEditModal);
+        document.getElementById('modal-cancel').addEventListener('click', hideEditModal);
+        document.getElementById('accident-modal').addEventListener('click', (e) => {
+          if (e.target.id === 'accident-modal') hideEditModal();
+        });
+
+        document.getElementById('signout')?.addEventListener('click', (e) => {
+          e.preventDefault();
+          window.brgyAdmin.logout();
+          window.location.href = 'index.html';
+        });
+      });
+    </script>
+    <header class="site-header">
+      <div class="container header-inner">
+        <h1 class="site-title">
+          <i class="fas fa-car-crash"></i>
+          Manage Accidents
+        </h1>
+        <nav class="site-nav">
+          <a href="dashboard.html">
+            <i class="fas fa-tachometer-alt"></i>
+            Dashboard
+          </a>
+          <a href="certifications.html">
+            <i class="fas fa-certificate"></i>
+            Certifications
+          </a>
+          <a href="complaints.html">
+            <i class="fas fa-exclamation-triangle"></i>
+            Complaints
+          </a>
+          <a href="announcements.html">
+            <i class="fas fa-bullhorn"></i>
+            Announcements
+          </a>
+          <a href="accidents.html" aria-current="page">
+            <i class="fas fa-car-crash"></i>
+            Accidents
+          </a>
+          <a href="residents.html">
+            <i class="fas fa-users"></i>
+            Residents
+          </a>
+          <a href="messages.html">
+            <i class="fas fa-comments"></i>
+            Messages
+          </a>
+          <a href="registrations.html">
+            <i class="fas fa-user-plus"></i>
+            Registrations
+          </a>
+          <a href="#" id="signout">
+            <i class="fas fa-sign-out-alt"></i>
+            Sign out
+          </a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="container page">
+      <div class="flex justify-between items-center mb-6">
+        <h2>Accident Records</h2>
+        <div class="flex gap-2">
+          <button class="btn btn-primary" onclick="alert('Reporting not implemented in demo')">
+            <i class="fas fa-plus"></i>
+            Report Accident
+          </button>
+        </div>
+      </div>
+
+      <div class="cards-grid mb-6">
+        <div class="card info">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3>Total</h3>
+              <p id="stat-total">0</p>
+            </div>
+            <i class="fas fa-clipboard-list text-2xl text-info-color"></i>
+          </div>
+        </div>
+        <div class="card success">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3>Road</h3>
+              <p id="stat-road">0</p>
+            </div>
+            <i class="fas fa-road text-2xl text-success-color"></i>
+          </div>
+        </div>
+        <div class="card danger">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3>Fire</h3>
+              <p id="stat-fire">0</p>
+            </div>
+            <i class="fas fa-fire text-2xl text-danger-color"></i>
+          </div>
+        </div>
+        <div class="card secondary">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3>Other</h3>
+              <p id="stat-other">0</p>
+            </div>
+            <i class="fas fa-asterisk text-2xl text-gray-500"></i>
+          </div>
+        </div>
+      </div>
+
+      <div class="cards-grid mb-6">
+        <div class="card danger">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3>High Severity</h3>
+              <p id="stat-high">0</p>
+            </div>
+            <i class="fas fa-exclamation-circle text-2xl text-danger-color"></i>
+          </div>
+        </div>
+        <div class="card warning">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3>Moderate</h3>
+              <p id="stat-moderate">0</p>
+            </div>
+            <i class="fas fa-exclamation-triangle text-2xl text-warning-color"></i>
+          </div>
+        </div>
+        <div class="card success">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3>Low</h3>
+              <p id="stat-low">0</p>
+            </div>
+            <i class="fas fa-check-circle text-2xl text-success-color"></i>
+          </div>
+        </div>
+      </div>
+
+      <div class="form mb-6">
+        <div class="fields">
+          <div class="field">
+            <label for="type-filter"><i class="fas fa-filter"></i> Type</label>
+            <select id="type-filter">
+              <option value="All">All</option>
+              <option value="Road">Road</option>
+              <option value="Fire">Fire</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="severity-filter"><i class="fas fa-signal"></i> Severity</label>
+            <select id="severity-filter">
+              <option value="All">All</option>
+              <option value="High">High</option>
+              <option value="Moderate">Moderate</option>
+              <option value="Low">Low</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="search"><i class="fas fa-search"></i> Search</label>
+            <input id="search" placeholder="Search by type, location, or ID..." />
+          </div>
+        </div>
+      </div>
+      <p id="accidents-error" class="text-danger"></p>
+
+      <div class="card">
+        <div class="overflow-x-auto">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Type</th>
+                <th>Location</th>
+                <th>Date/Time</th>
+                <th>Severity</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td colspan="6" class="text-center text-gray-500">Loading...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+
+    <div id="accident-modal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title">Edit Accident <span id="modal-id"></span></h3>
+          <button id="modal-close" class="modal-close"><i class="fas fa-times"></i></button>
+        </div>
+        <form id="accident-form" class="modal-body">
+          <input type="hidden" id="accident-id" />
+          <div class="field mb-4">
+            <label for="accident-type"><i class="fas fa-tag"></i> Type</label>
+            <select id="accident-type" required>
+              <option value="Road">Road</option>
+              <option value="Fire">Fire</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="field mb-4">
+            <label for="accident-location"><i class="fas fa-map-marker-alt"></i> Location</label>
+            <input id="accident-location" required placeholder="Enter location..." />
+          </div>
+          <div class="field mb-4">
+            <label for="accident-datetime"><i class="fas fa-clock"></i> Date/Time</label>
+            <input id="accident-datetime" required placeholder="YYYY-MM-DD HH:MM" />
+          </div>
+          <div class="field mb-4">
+            <label for="accident-severity"><i class="fas fa-signal"></i> Severity</label>
+            <select id="accident-severity" required>
+              <option value="Low">Low</option>
+              <option value="Moderate">Moderate</option>
+              <option value="High">High</option>
+            </select>
+          </div>
+        </form>
+        <div class="modal-footer">
+          <button id="modal-cancel" class="btn btn-secondary"><i class="fas fa-times"></i> Cancel</button>
+          <button type="submit" form="accident-form" class="btn btn-primary"><i class="fas fa-save"></i> Save Changes</button>
+        </div>
+      </div>
+    </div>
+  </body>
+  </html>
+
+

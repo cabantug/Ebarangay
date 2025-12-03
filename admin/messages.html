@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Messages • Admin</title>
+    <link rel="stylesheet" href="assets/admin-styles.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  </head>
+  <body>
+    <script src="assets/admin.js"></script>
+    <script src="assets/admin-theme.js"></script>
+    <script>
+      let allMessages = [];
+      let selectedThread = [];
+      let selectedResident = null;
+      let errorEl;
+
+      function getUniqueResidents() {
+        const residents = new Set();
+        allMessages.forEach((m) => {
+          if (m.from !== 'Admin') {
+            residents.add(m.from);
+          }
+        });
+        return Array.from(residents);
+      }
+
+      function getMessagesForResident(resident) {
+        return allMessages
+          .filter(
+            (m) =>
+              (m.from === resident && m.to === 'Admin') ||
+              (m.from === 'Admin' && m.to === resident),
+          )
+          .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+      }
+
+      function renderResidentList() {
+        const residents = getUniqueResidents();
+        const container = document.getElementById('resident-list');
+
+        if (residents.length === 0) {
+          container.innerHTML = '<div class="text-center text-gray-500 p-4">No messages yet</div>';
+          return;
+        }
+
+        container.innerHTML = residents
+          .map((resident) => {
+            const messages = getMessagesForResident(resident);
+            const unreadCount = messages.filter((m) => m.from === resident && !m.read).length;
+            const lastMessage = messages[messages.length - 1];
+            const lastMessageText = lastMessage
+              ? lastMessage.message.length > 50
+                ? `${lastMessage.message.substring(0, 50)}...`
+                : lastMessage.message
+              : 'No messages';
+
+            return `
+            <div class="resident-item ${selectedResident === resident ? 'active' : ''}" 
+                 data-resident="${resident}" 
+                 onclick="selectResident('${resident}')">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                  <div class="resident-avatar">
+                    <i class="fas fa-user"></i>
+                  </div>
+                  <div>
+                    <div class="font-semibold">${resident}</div>
+                    <div class="text-sm text-gray-500 truncate max-w-xs">${lastMessageText}</div>
+                  </div>
+                </div>
+                ${unreadCount > 0 ? `<span class="chip danger">${unreadCount}</span>` : ''}
+              </div>
+            </div>
+          `;
+          })
+          .join('');
+      }
+
+      async function selectResident(resident) {
+        selectedResident = resident;
+        try {
+          selectedThread = await window.brgyAdmin.getMessageThread(resident);
+        } catch (err) {
+          errorEl.textContent = err.message || 'Unable to load message thread.';
+          return;
+        }
+
+        document.getElementById('messages-header').textContent = `Messages with ${resident}`;
+        document.querySelector('.reply-section').style.display = 'flex';
+        renderResidentList();
+        renderMessages();
+      }
+
+      function renderMessages() {
+        const container = document.getElementById('messages-container');
+        if (!selectedResident || selectedThread.length === 0) {
+          container.innerHTML = `
+            <div class="text-center text-gray-500 p-8">
+              <i class="fas fa-comments text-4xl mb-4"></i>
+              <p>Select a resident to view messages</p>
+            </div>
+          `;
+          return;
+        }
+
+        container.innerHTML = selectedThread
+          .map((msg) => {
+            const isAdmin = msg.from === 'Admin';
+            const date = new Date(msg.timestamp);
+            const time = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+            return `
+            <div class="message ${isAdmin ? 'message-admin' : 'message-resident'}">
+              <div class="message-content">
+                <div class="message-header">
+                  <span class="font-semibold">${isAdmin ? 'Admin' : msg.from}</span>
+                  <span class="text-xs text-gray-500">${time}</span>
+                </div>
+                <div class="message-text">${msg.message}</div>
+              </div>
+            </div>
+          `;
+          })
+          .join('');
+
+        container.scrollTop = container.scrollHeight;
+      }
+
+      async function refreshMessages() {
+        try {
+          errorEl.textContent = '';
+          allMessages = await window.brgyAdmin.listMessages();
+          renderResidentList();
+          if (selectedResident) {
+            await selectResident(selectedResident);
+          } else {
+            renderMessages();
+          }
+        } catch (err) {
+          errorEl.textContent = err.message || 'Unable to load messages.';
+        }
+      }
+
+      async function sendReply() {
+        const replyInput = document.getElementById('reply-input');
+        const reply = replyInput.value.trim();
+
+        if (!reply || !selectedResident || !selectedThread.length) return;
+
+        const originalMessage = selectedThread.find(
+          (m) => m.from === selectedResident && !m.isReply,
+        );
+        const messageId = originalMessage ? originalMessage.id : selectedThread[0].id;
+
+        try {
+          await window.brgyAdmin.replyToMessage(messageId, reply);
+          replyInput.value = '';
+          await refreshMessages();
+        } catch (err) {
+          errorEl.textContent = err.message || 'Unable to send reply.';
+        }
+      }
+
+      window.addEventListener('DOMContentLoaded', async () => {
+        errorEl = document.getElementById('messages-error');
+        await window.brgyAdmin.requireAuth();
+        await refreshMessages();
+
+        document.getElementById('reply-input').addEventListener('keypress', (e) => {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendReply();
+          }
+        });
+
+        document.getElementById('reply-btn').addEventListener('click', sendReply);
+
+        document.getElementById('signout')?.addEventListener('click', (e) => {
+          e.preventDefault();
+          window.brgyAdmin.logout();
+          window.location.href = 'index.html';
+        });
+      });
+
+      window.selectResident = (resident) => selectResident(resident);
+    </script>
+    <style>
+      .messages-layout {
+        display: grid;
+        grid-template-columns: 300px 1fr;
+        gap: 1rem;
+        height: calc(100vh - 120px);
+      }
+      
+      .resident-list {
+        background: var(--white);
+        border: 1px solid var(--gray-200);
+        border-radius: var(--border-radius);
+        overflow-y: auto;
+        max-height: 100%;
+      }
+      
+      .resident-item {
+        padding: 1rem;
+        border-bottom: 1px solid var(--gray-200);
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+      
+      .resident-item:hover {
+        background: var(--gray-100);
+      }
+      
+      .resident-item.active {
+        background: var(--primary-color);
+        color: white;
+      }
+      
+      .resident-item.active .text-gray-500 {
+        color: rgba(255, 255, 255, 0.8);
+      }
+      
+      .resident-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: var(--gray-200);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      
+      .resident-item.active .resident-avatar {
+        background: rgba(255, 255, 255, 0.2);
+      }
+      
+      .messages-panel {
+        display: flex;
+        flex-direction: column;
+        background: var(--white);
+        border: 1px solid var(--gray-200);
+        border-radius: var(--border-radius);
+      }
+      
+      .messages-header {
+        padding: 1rem;
+        border-bottom: 1px solid var(--gray-200);
+        font-weight: 600;
+      }
+      
+      #messages-container {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+      
+      .message {
+        max-width: 70%;
+      }
+      
+      .message-admin {
+        align-self: flex-end;
+      }
+      
+      .message-resident {
+        align-self: flex-start;
+      }
+      
+      .message-content {
+        padding: 0.75rem 1rem;
+        border-radius: var(--border-radius);
+      }
+      
+      .message-admin .message-content {
+        background: var(--primary-color);
+        color: white;
+      }
+      
+      .message-resident .message-content {
+        background: var(--gray-200);
+        color: var(--gray-900);
+      }
+      
+      .message-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.25rem;
+        font-size: 0.875rem;
+      }
+      
+      .message-text {
+        line-height: 1.5;
+      }
+      
+      .reply-section {
+        padding: 1rem;
+        border-top: 1px solid var(--gray-200);
+        display: flex;
+        gap: 0.5rem;
+      }
+      
+      .reply-section input {
+        flex: 1;
+      }
+      
+      @media (max-width: 768px) {
+        .messages-layout {
+          grid-template-columns: 1fr;
+        }
+        
+        .resident-list {
+          max-height: 200px;
+        }
+      }
+    </style>
+    <header class="site-header">
+      <div class="container header-inner">
+        <h1 class="site-title">
+          <i class="fas fa-comments"></i>
+          Messages
+        </h1>
+        <nav class="site-nav">
+          <a href="dashboard.html">
+            <i class="fas fa-tachometer-alt"></i>
+            Dashboard
+          </a>
+          <a href="certifications.html">
+            <i class="fas fa-certificate"></i>
+            Certifications
+          </a>
+          <a href="complaints.html">
+            <i class="fas fa-exclamation-triangle"></i>
+            Complaints
+          </a>
+          <a href="announcements.html">
+            <i class="fas fa-bullhorn"></i>
+            Announcements
+          </a>
+          <a href="accidents.html">
+            <i class="fas fa-car-crash"></i>
+            Accidents
+          </a>
+          <a href="residents.html">
+            <i class="fas fa-users"></i>
+            Residents
+          </a>
+          <a href="messages.html" aria-current="page">
+            <i class="fas fa-comments"></i>
+            Messages
+          </a>
+          <a href="registrations.html">
+            <i class="fas fa-user-plus"></i>
+            Registrations
+          </a>
+          <a href="#" id="signout">
+            <i class="fas fa-sign-out-alt"></i>
+            Sign out
+          </a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="container page">
+      <div class="flex justify-between items-center mb-6">
+        <h2>Resident Messages</h2>
+      </div>
+      <p id="messages-error" class="text-danger"></p>
+      
+      <div class="messages-layout">
+        <div class="resident-list">
+          <div class="p-3 border-b border-gray-200 font-semibold">Residents</div>
+          <div id="resident-list">Loading...</div>
+        </div>
+        
+        <div class="messages-panel">
+          <div class="messages-header" id="messages-header">
+            Select a resident
+          </div>
+          <div id="messages-container">Select a resident to view messages</div>
+          <div class="reply-section" style="display: ${selectedResident ? 'flex' : 'none'};">
+            <input 
+              id="reply-input" 
+              type="text" 
+              placeholder="Type your reply..." 
+              class="field-input"
+            />
+            <button class="btn btn-primary" id="reply-btn">
+              <i class="fas fa-paper-plane"></i>
+              Send
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>
+

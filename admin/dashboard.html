@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Dashboard • Barangay Liong Digital Services</title>
+    <link rel="stylesheet" href="assets/admin-styles.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  </head>
+  <body>
+    <script src="assets/admin.js"></script>
+    <script src="assets/admin-theme.js"></script>
+    <script>
+      document.addEventListener('DOMContentLoaded', async () => {
+        await window.brgyAdmin.requireAuth();
+        const errorEl = document.getElementById('dashboard-error');
+
+        try {
+          const s = await window.brgyAdmin.dashboardStats();
+          document.getElementById('kpi-pending').textContent = s.pendingRequests;
+          document.getElementById('kpi-complaints').textContent = s.openComplaints;
+          document.getElementById('kpi-ann').textContent = s.announcements;
+          document.getElementById('kpi-res').textContent = s.residents;
+
+          const tbody = document.getElementById('activity-body');
+          if (!s.activity || s.activity.length === 0) {
+            tbody.innerHTML =
+              '<tr><td colspan="3" class="text-center text-gray-500">No recent activity</td></tr>';
+          } else {
+            tbody.innerHTML = s.activity
+              .map(
+                (a) => `
+              <tr>
+                <td class="text-sm">${new Date(a.when).toLocaleString()}</td>
+                <td><span class="chip info">${a.actor}</span></td>
+                <td>${a.action}</td>
+              </tr>
+            `,
+              )
+              .join('');
+          }
+        } catch (err) {
+          errorEl.textContent = err.message || 'Unable to load dashboard data.';
+          errorEl.style.display = 'block';
+        }
+
+        document.getElementById('signout').addEventListener('click', (e) => {
+          e.preventDefault();
+          window.brgyAdmin.logout();
+          window.location.href = 'index.html';
+        });
+
+        document.querySelectorAll('.quick-action').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const href = btn.getAttribute('data-href');
+            if (href) window.location.href = href;
+          });
+        });
+      });
+    </script>
+    <header class="site-header">
+      <div class="container header-inner">
+        <h1 class="site-title">
+          <i class="fas fa-shield-alt"></i>
+          Admin Dashboard
+        </h1>
+        <nav class="site-nav">
+          <a href="dashboard.html" aria-current="page">
+            <i class="fas fa-tachometer-alt"></i>
+            Dashboard
+          </a>
+          <a href="certifications.html">
+            <i class="fas fa-certificate"></i>
+            Certifications
+          </a>
+          <a href="complaints.html">
+            <i class="fas fa-exclamation-triangle"></i>
+            Complaints
+          </a>
+          <a href="announcements.html">
+            <i class="fas fa-bullhorn"></i>
+            Announcements
+          </a>
+          <a href="accidents.html">
+            <i class="fas fa-car-crash"></i>
+            Accidents
+          </a>
+          <a href="residents.html">
+            <i class="fas fa-users"></i>
+            Residents
+          </a>
+          <a href="messages.html">
+            <i class="fas fa-comments"></i>
+            Messages
+          </a>
+          <a href="registrations.html">
+            <i class="fas fa-user-plus"></i>
+            Registrations
+          </a>
+          <a href="#" id="signout">
+            <i class="fas fa-sign-out-alt"></i>
+            Sign out
+          </a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="container page">
+      <div class="flex justify-between items-center mb-6">
+        <h2>Dashboard Overview</h2>
+        <div class="flex gap-2">
+          <button class="btn btn-primary quick-action" data-href="certifications.html">
+            <i class="fas fa-plus"></i>
+            New Certificate
+          </button>
+          <button class="btn btn-secondary quick-action" data-href="announcements.html">
+            <i class="fas fa-bullhorn"></i>
+            Post Announcement
+          </button>
+        </div>
+      </div>
+      <p id="dashboard-error" class="text-danger" style="display:none;"></p>
+      
+      <div class="cards-grid">
+        <div class="card warning">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3>Pending Requests</h3>
+              <p id="kpi-pending">0</p>
+            </div>
+            <i class="fas fa-clock text-2xl text-warning-color"></i>
+          </div>
+          <a href="certifications.html" class="btn btn-sm btn-warning mt-2 w-full">
+            <i class="fas fa-eye"></i>
+            View Requests
+          </a>
+        </div>
+        
+        <div class="card danger">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3>Open Complaints</h3>
+              <p id="kpi-complaints">0</p>
+            </div>
+            <i class="fas fa-exclamation-triangle text-2xl text-danger-color"></i>
+          </div>
+          <a href="complaints.html" class="btn btn-sm btn-danger mt-2 w-full">
+            <i class="fas fa-eye"></i>
+            View Complaints
+          </a>
+        </div>
+        
+        <div class="card info">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3>Announcements</h3>
+              <p id="kpi-ann">0</p>
+            </div>
+            <i class="fas fa-bullhorn text-2xl text-info-color"></i>
+          </div>
+          <a href="announcements.html" class="btn btn-sm btn-info mt-2 w-full">
+            <i class="fas fa-eye"></i>
+            View All
+          </a>
+        </div>
+        
+        <div class="card success">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3>Total Residents</h3>
+              <p id="kpi-res">0</p>
+            </div>
+            <i class="fas fa-users text-2xl text-success-color"></i>
+          </div>
+          <a href="residents.html" class="btn btn-sm btn-success mt-2 w-full">
+            <i class="fas fa-eye"></i>
+            Manage Residents
+          </a>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+        <div class="card">
+          <div class="flex items-center justify-between mb-4">
+            <h3>Recent Activity</h3>
+            <i class="fas fa-history text-gray-400"></i>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Actor</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="activity-body">
+                <tr>
+                  <td colspan="3" class="text-center text-gray-500">Loading...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+        <div class="card">
+          <div class="flex items-center justify-between mb-4">
+            <h3>Quick Actions</h3>
+            <i class="fas fa-bolt text-gray-400"></i>
+          </div>
+          <div class="space-y-3">
+            <a href="certifications.html" class="btn btn-primary w-full justify-start">
+              <i class="fas fa-certificate"></i>
+              Manage Certificates
+            </a>
+            <a href="complaints.html" class="btn btn-danger w-full justify-start">
+              <i class="fas fa-exclamation-triangle"></i>
+              Handle Complaints
+            </a>
+            <a href="announcements.html" class="btn btn-info w-full justify-start">
+              <i class="fas fa-bullhorn"></i>
+              Create Announcement
+            </a>
+            <a href="residents.html" class="btn btn-success w-full justify-start">
+              <i class="fas fa-users"></i>
+              Manage Residents
+            </a>
+            <a href="accidents.html" class="btn btn-warning w-full justify-start">
+              <i class="fas fa-car-crash"></i>
+              Report Accident
+            </a>
+          </div>
+        </div>
+      </div>
+    </main>
+  </body>
+  </html>
+
+

@@ -1,0 +1,341 @@
+{
+  "name": "brgy-admin-ui",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.22"
+  }
+}<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Manage Complaints • Admin</title>
+    <link rel="stylesheet" href="assets/admin-styles.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  </head>
+  <body>
+    <script src="assets/admin.js"></script>
+    <script src="assets/admin-theme.js"></script>
+    <script>
+      let allComplaints = [];
+      let filteredComplaints = [];
+      let errorEl;
+
+      function render() {
+        const tbody = document.querySelector('tbody');
+        if (filteredComplaints.length === 0) {
+          tbody.innerHTML =
+            '<tr><td colspan="6" class="text-center text-gray-500">No complaints found</td></tr>';
+          return;
+        }
+
+        const rows = filteredComplaints
+          .map((c) => {
+            const statusClass =
+              c.status === 'Open'
+                ? 'danger'
+                : c.status === 'In Progress'
+                ? 'warning'
+                : c.status === 'Closed'
+                ? 'success'
+                : 'secondary';
+
+            return `
+            <tr>
+              <td class="font-semibold">#${c.id}</td>
+              <td><span class="chip info">${c.category}</span></td>
+              <td>${c.location}</td>
+              <td class="max-w-xs truncate">${c.details}</td>
+              <td><span class="chip ${statusClass}">${c.status}</span></td>
+              <td class="flex gap-2">
+                ${
+                  c.status !== 'Closed'
+                    ? `
+                  <button class="btn btn-warning btn-sm" data-act="assign" data-id="${c.id}">
+                    <i class="fas fa-user-check"></i>
+                    Assign
+                  </button>
+                  <button class="btn btn-success btn-sm" data-act="close" data-id="${c.id}">
+                    <i class="fas fa-check"></i>
+                    Close
+                  </button>
+                `
+                    : `
+                  <button class="btn btn-secondary btn-sm" data-act="view" data-id="${c.id}">
+                    <i class="fas fa-eye"></i>
+                    View
+                  </button>
+                `
+                }
+                <button class="btn btn-info btn-sm" data-act="details" data-id="${c.id}">
+                  <i class="fas fa-info-circle"></i>
+                  Details
+                </button>
+              </td>
+            </tr>
+          `;
+          })
+          .join('');
+        tbody.innerHTML = rows;
+      }
+
+      function filterComplaints() {
+        const statusFilter = document.getElementById('status').value;
+        const categoryFilter = document.getElementById('category').value;
+        const searchQuery = document.getElementById('q').value.toLowerCase();
+
+        filteredComplaints = allComplaints.filter((complaint) => {
+          const matchesStatus = statusFilter === 'All' || complaint.status === statusFilter;
+          const matchesCategory = categoryFilter === 'All' || complaint.category === categoryFilter;
+          const matchesSearch =
+            searchQuery === '' ||
+            complaint.details.toLowerCase().includes(searchQuery) ||
+            complaint.location.toLowerCase().includes(searchQuery) ||
+            complaint.id.toString().includes(searchQuery);
+
+          return matchesStatus && matchesCategory && matchesSearch;
+        });
+
+        render();
+        updateStats();
+      }
+
+      function updateStats() {
+        const stats = {
+          total: allComplaints.length,
+          open: allComplaints.filter((c) => c.status === 'Open').length,
+          inProgress: allComplaints.filter((c) => c.status === 'In Progress').length,
+          closed: allComplaints.filter((c) => c.status === 'Closed').length,
+        };
+
+        document.getElementById('stat-total').textContent = stats.total;
+        document.getElementById('stat-open').textContent = stats.open;
+        document.getElementById('stat-in-progress').textContent = stats.inProgress;
+        document.getElementById('stat-closed').textContent = stats.closed;
+      }
+
+      async function loadComplaints() {
+        try {
+          errorEl.textContent = '';
+          allComplaints = await window.brgyAdmin.listComplaints();
+          filteredComplaints = [...allComplaints];
+          render();
+          updateStats();
+        } catch (err) {
+          errorEl.textContent = err.message || 'Unable to load complaints.';
+        }
+      }
+
+      document.addEventListener('DOMContentLoaded', async () => {
+        errorEl = document.getElementById('complaints-error');
+        await window.brgyAdmin.requireAuth();
+        await loadComplaints();
+
+        document.getElementById('status').addEventListener('change', filterComplaints);
+        document.getElementById('category').addEventListener('change', filterComplaints);
+        document.getElementById('q').addEventListener('input', filterComplaints);
+
+        document.body.addEventListener('click', async (e) => {
+          const btn = e.target.closest('button[data-act]');
+          if (!btn) return;
+
+          const id = Number(btn.getAttribute('data-id'));
+          const act = btn.getAttribute('data-act');
+
+          if (act === 'assign' && confirm('Assign this complaint?')) {
+            await window.brgyAdmin.updateComplaint(id, { status: 'In Progress' });
+            await loadComplaints();
+          }
+          if (act === 'close' && confirm('Close this complaint?')) {
+            await window.brgyAdmin.updateComplaint(id, { status: 'Closed' });
+            await loadComplaints();
+          }
+          if (act === 'view') {
+            alert('View complaint details (demo)');
+          }
+          if (act === 'details') {
+            alert('Show complaint details (demo)');
+          }
+        });
+
+        document.getElementById('signout')?.addEventListener('click', (e) => {
+          e.preventDefault();
+          window.brgyAdmin.logout();
+          window.location.href = 'index.html';
+        });
+      });
+    </script>
+    <header class="site-header">
+      <div class="container header-inner">
+        <h1 class="site-title">
+          <i class="fas fa-exclamation-triangle"></i>
+          Manage Complaints
+        </h1>
+        <nav class="site-nav">
+          <a href="dashboard.html">
+            <i class="fas fa-tachometer-alt"></i>
+            Dashboard
+          </a>
+          <a href="certifications.html">
+            <i class="fas fa-certificate"></i>
+            Certifications
+          </a>
+          <a href="complaints.html" aria-current="page">
+            <i class="fas fa-exclamation-triangle"></i>
+            Complaints
+          </a>
+          <a href="announcements.html">
+            <i class="fas fa-bullhorn"></i>
+            Announcements
+          </a>
+          <a href="accidents.html">
+            <i class="fas fa-car-crash"></i>
+            Accidents
+          </a>
+          <a href="residents.html">
+            <i class="fas fa-users"></i>
+            Residents
+          </a>
+          <a href="messages.html">
+            <i class="fas fa-comments"></i>
+            Messages
+          </a>
+          <a href="registrations.html">
+            <i class="fas fa-user-plus"></i>
+            Registrations
+          </a>
+          <a href="#" id="signout">
+            <i class="fas fa-sign-out-alt"></i>
+            Sign out
+          </a>
+        </nav>
+      </div>
+      <p id="complaints-error" class="text-danger"></p>
+    </header>
+
+    <main class="container page">
+      <div class="flex justify-between items-center mb-6">
+        <h2>Complaint Management</h2>
+        <button class="btn btn-primary">
+          <i class="fas fa-plus"></i>
+          New Complaint
+        </button>
+      </div>
+      
+      <!-- Statistics Cards -->
+      <div class="cards-grid mb-6">
+        <div class="card info">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3>Total Complaints</h3>
+              <p id="stat-total">0</p>
+            </div>
+            <i class="fas fa-exclamation-triangle text-2xl text-info-color"></i>
+          </div>
+        </div>
+        
+        <div class="card danger">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3>Open</h3>
+              <p id="stat-open">0</p>
+            </div>
+            <i class="fas fa-exclamation-circle text-2xl text-danger-color"></i>
+          </div>
+        </div>
+        
+        <div class="card warning">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3>In Progress</h3>
+              <p id="stat-in-progress">0</p>
+            </div>
+            <i class="fas fa-clock text-2xl text-warning-color"></i>
+          </div>
+        </div>
+        
+        <div class="card success">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3>Closed</h3>
+              <p id="stat-closed">0</p>
+            </div>
+            <i class="fas fa-check-circle text-2xl text-success-color"></i>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Filters -->
+      <div class="form mb-6">
+        <div class="fields">
+          <div class="field">
+            <label for="status">
+              <i class="fas fa-filter"></i>
+              Status
+            </label>
+            <select id="status">
+              <option value="All">All Status</option>
+              <option value="Open">Open</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Closed">Closed</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="category">
+              <i class="fas fa-tag"></i>
+              Category
+            </label>
+            <select id="category">
+              <option value="All">All Categories</option>
+              <option value="Noise">Noise</option>
+              <option value="Garbage">Garbage</option>
+              <option value="Safety">Safety</option>
+              <option value="Infrastructure">Infrastructure</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="q">
+              <i class="fas fa-search"></i>
+              Search
+            </label>
+            <input id="q" placeholder="Search by details, location, or ID..." />
+          </div>
+        </div>
+      </div>
+
+      <!-- Complaints Table -->
+      <div class="card">
+        <div class="overflow-x-auto">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Category</th>
+                <th>Location</th>
+                <th>Details</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td colspan="6" class="text-center text-gray-500">Loading...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </body>
+  </html>
+
+
