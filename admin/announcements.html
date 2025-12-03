@@ -20,7 +20,384 @@
         if (filteredAnnouncements.length === 0) {
           tbody.innerHTML =
             '<tr><td colspan="5" class="text-center text-gray-500">No announcements found</td></tr>';
-          return;
+                 // ...existing code...
+          <head>
+            <meta charset="UTF-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+            <title>Manage Announcements • Admin</title>
+            <!-- changed to absolute admin paths -->
+            <link rel="stylesheet" href="/admin/assets/admin-styles.css" />
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+          </head>
+          <body>
+            <!-- changed to absolute admin paths -->
+            <script src="/admin/assets/admin.js"></script>
+            <script src="/admin/assets/admin-theme.js"></script>
+            <script>
+              // ...existing code...
+              document.getElementById('signout')?.addEventListener('click', (e) => {
+                e.preventDefault();
+                window.brgyAdmin.logout();
+                // redirect to admin login page using absolute admin path
+                window.location.href = '/admin/index.html';
+              });
+              // ...existing code...
+            </script>
+            <header class="site-header">
+              <div class="container header-inner">
+                <h1 class="site-title">
+                  <i class="fas fa-bullhorn"></i>
+                  Manage Announcements
+                </h1>
+                <nav class="site-nav">
+                  <!-- changed nav links to include /admin base -->
+                  <a href="/admin/dashboard.html">
+                    <i class="fas fa-tachometer-alt"></i>
+                    Dashboard
+                  </a>
+                  <a href="/admin/certifications.html">
+                    <i class="fas fa-certificate"></i>
+                    Certifications
+                  </a>
+                  <a href="/admin/complaints.html">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Complaints
+                  </a>
+                  <a href="/admin/announcements.html" aria-current="page">
+                    <i class="fas fa-bullhorn"></i>
+                    Announcements
+                  </a>
+                  <a href="/admin/accidents.html">
+                    <i class="fas fa-car-crash"></i>
+                    Accidents
+                  </a>
+                  <a href="/admin/residents.html">
+                    <i class="fas fa-users"></i>
+                    Residents
+                  </a>
+                  <a href="/admin/messages.html">
+                    <i class="fas fa-comments"></i>
+                    Messages
+                  </a>
+                  <a href="/admin/registrations.html">
+                    <i class="fas fa-user-plus"></i>
+                    Registrations
+                  </a>
+                  <a href="#" id="signout">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Sign out
+                  </a>
+                </nav>
+              </div>
+              <p id="announcement-error" class="text-danger"></p>
+            </header>
+            // ...existing code...            <!doctype html>
+            <html lang="en">
+            <head>
+              <meta charset="utf-8" />
+              <meta name="viewport" content="width=device-width,initial-scale=1" />
+              <title>Manage Announcements • Admin</title>
+              <link rel="stylesheet" href="/admin/assets/admin-styles.css" />
+              <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+              <style>
+                /* small local fixes so the page looks OK if stylesheet missing */
+                .container{max-width:1100px;margin:20px auto;padding:0 16px}
+                .cards-grid{display:flex;gap:12px}
+                .card{background:#fff;padding:12px;border-radius:8px}
+                .form-row{display:flex;gap:8px;align-items:center}
+                .form-row input,.form-row select{padding:8px;border-radius:6px;border:1px solid #ddd}
+                .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);align-items:center;justify-content:center}
+                .modal.active{display:flex}
+                .modal-content{background:#fff;padding:16px;border-radius:8px;min-width:320px;max-width:720px;width:90%}
+                .text-danger{color:#b91c1c}
+                table{width:100%;border-collapse:collapse}
+                th,td{padding:8px;border-bottom:1px solid #eee;text-align:left}
+                .btn{padding:8px 10px;border-radius:6px;border:1px solid #ccc;background:#fff;cursor:pointer}
+                .btn.primary{background:#2563eb;color:#fff;border-color:transparent}
+                .tag{padding:4px 8px;border-radius:999px;color:#fff;font-size:12px}
+                .tag.ready{background:#10b981}
+                .tag.pending{background:#f59e0b}
+              </style>
+            </head>
+            <body>
+              <header class="site-header">
+                <div class="container header-inner">
+                  <h1 class="site-title"><i class="fas fa-bullhorn"></i> Manage Announcements</h1>
+                  <nav class="site-nav" style="margin-top:8px">
+                    <a href="/admin/dashboard.html">Dashboard</a> ·
+                    <a href="/admin/announcements.html" aria-current="page">Announcements</a> ·
+                    <a href="#" id="signout">Sign out</a>
+                  </nav>
+                </div>
+                <p id="announcement-error" class="text-danger"></p>
+              </header>
+            
+              <main class="container page">
+                <div class="flex justify-between items-center mb-6" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+                  <div>
+                    <button id="btn-add" class="btn primary">+ New Announcement</button>
+                  </div>
+                  <div>
+                    <input id="search" placeholder="Search announcements..." />
+                  </div>
+                </div>
+            
+                <!-- Statistics Cards -->
+                <div class="cards-grid mb-6" style="margin-bottom:16px">
+                  <div class="card" style="flex:1">
+                    <strong>Total</strong>
+                    <div id="stat-total">0</div>
+                  </div>
+                  <div class="card" style="width:160px">
+                    <strong>Emergency</strong>
+                    <div id="stat-emergency">0</div>
+                  </div>
+                  <div class="card" style="width:160px">
+                    <strong>Event</strong>
+                    <div id="stat-event">0</div>
+                  </div>
+                  <div class="card" style="width:160px">
+                    <strong>Advisory</strong>
+                    <div id="stat-advisory">0</div>
+                  </div>
+                </div>
+            
+                <!-- Filters -->
+                <div class="form mb-6" style="margin-bottom:16px">
+                  <div class="form-row">
+                    <label for="type-filter">Type:</label>
+                    <select id="type-filter">
+                      <option value="">All</option>
+                      <option value="emergency">Emergency</option>
+                      <option value="event">Event</option>
+                      <option value="advisory">Advisory</option>
+                    </select>
+                  </div>
+                </div>
+            
+                <!-- Announcements Table -->
+                <div class="card">
+                  <table aria-describedby="Announcements">
+                    <thead>
+                      <tr><th>Type</th><th>Message</th><th>Date</th><th>Actions</th></tr>
+                    </thead>
+                    <tbody id="announcements-body">
+                      <!-- rows injected by JS -->
+                    </tbody>
+                  </table>
+                </div>
+              </main>
+            
+              <!-- Announcement Modal -->
+              <div id="announcement-modal" class="modal" role="dialog" aria-modal="true" aria-hidden="true">
+                <div class="modal-content">
+                  <h3 id="modal-title">New Announcement</h3>
+                  <form id="announcement-form">
+                    <input type="hidden" id="announcement-id" />
+                    <div style="margin-bottom:8px">
+                      <label for="announcement-type">Type</label><br/>
+                      <select id="announcement-type" required>
+                        <option value="emergency">Emergency</option>
+                        <option value="event">Event</option>
+                        <option value="advisory">Advisory</option>
+                      </select>
+                    </div>
+                    <div style="margin-bottom:8px">
+                      <label for="announcement-body">Message</label><br/>
+                      <textarea id="announcement-body" rows="6" style="width:100%" required></textarea>
+                    </div>
+                    <div style="display:flex;justify-content:flex-end;gap:8px">
+                      <button type="button" id="announcement-cancel" class="btn">Cancel</button>
+                      <button type="submit" class="btn primary">Save</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            
+              <script src="/admin/assets/admin.js"></script>
+              <script src="/admin/assets/admin-theme.js"></script>
+              <script>
+                // Fixed and complete JS logic for announcements.html
+                (function () {
+                  const errorEl = document.getElementById('announcement-error');
+                  const tbody = document.getElementById('announcements-body');
+                  const typeFilter = document.getElementById('type-filter');
+                  const searchInput = document.getElementById('search');
+            
+                  let allAnnouncements = [
+                    // sample data fallback
+                    { id: '1', type: 'event', body: 'Community cleanup this Saturday.', date: '2025-11-20', status: 'ready' },
+                    { id: '2', type: 'advisory', body: 'Water interruption tomorrow.', date: '2025-11-22', status: 'pending' }
+                  ];
+                  let filteredAnnouncements = [];
+            
+                  function updateStats() {
+                    const stats = {
+                      total: allAnnouncements.length,
+                      emergency: allAnnouncements.filter(a => a.type === 'emergency').length,
+                      event: allAnnouncements.filter(a => a.type === 'event').length,
+                      advisory: allAnnouncements.filter(a => a.type === 'advisory').length
+                    };
+                    document.getElementById('stat-total').textContent = stats.total;
+                    document.getElementById('stat-emergency').textContent = stats.emergency;
+                    document.getElementById('stat-event').textContent = stats.event;
+                    document.getElementById('stat-advisory').textContent = stats.advisory;
+                  }
+            
+                  function render() {
+                    if (!Array.isArray(filteredAnnouncements)) filteredAnnouncements = [];
+                    const rows = filteredAnnouncements.map(a => {
+                      const tagClass = a.status === 'ready' ? 'tag ready' : (a.status === 'pending' ? 'tag pending' : 'tag');
+                      return `
+                        <tr data-id="${a.id}">
+                          <td><strong>${escapeHtml(a.type)}</strong></td>
+                          <td>${escapeHtml(a.body)}</td>
+                          <td>${escapeHtml(a.date)}</td>
+                          <td>
+                            <button class="btn small edit">Edit</button>
+                            <button class="btn small delete">Delete</button>
+                            <button class="btn small notify">Notify</button>
+                            <span class="${tagClass}" style="margin-left:8px">${escapeHtml(a.status || '')}</span>
+                          </td>
+                        </tr>
+                      `;
+                    }).join('');
+                    tbody.innerHTML = rows || '<tr><td colspan="4" style="text-align:center">No announcements found</td></tr>';
+                  }
+            
+                  function filterAnnouncements() {
+                    const typeVal = typeFilter.value;
+                    const q = (searchInput.value || '').trim().toLowerCase();
+            
+                    filteredAnnouncements = allAnnouncements.filter(a => {
+                      const matchesType = !typeVal || a.type === typeVal;
+                      const matchesSearch = !q || (a.body || '').toLowerCase().includes(q) || (a.type || '').toLowerCase().includes(q);
+                      return matchesType && matchesSearch;
+                    });
+            
+                    render();
+                    updateStats();
+                  }
+            
+                  function showAnnouncementModal(announcement = null) {
+                    const modal = document.getElementById('announcement-modal');
+                    document.getElementById('announcement-id').value = announcement ? announcement.id : '';
+                    document.getElementById('announcement-type').value = announcement ? announcement.type : 'event';
+                    document.getElementById('announcement-body').value = announcement ? announcement.body : '';
+                    document.getElementById('modal-title').textContent = announcement ? 'Edit Announcement' : 'New Announcement';
+                    modal.classList.add('active');
+                    modal.setAttribute('aria-hidden', 'false');
+                  }
+            
+                  function hideAnnouncementModal() {
+                    const modal = document.getElementById('announcement-modal');
+                    modal.classList.remove('active');
+                    modal.setAttribute('aria-hidden', 'true');
+                  }
+            
+                  async function loadAnnouncements() {
+                    // attempt to load from backend API; fallback to sample data already present
+                    try {
+                      const res = await fetch('/admin/api/announcements');
+                      if (!res.ok) throw new Error('no-api');
+                      const data = await res.json();
+                      if (Array.isArray(data)) allAnnouncements = data;
+                    } catch (err) {
+                      // keep sample data if API call fails
+                      console.warn('Could not load announcements from API, using fallback data.', err);
+                    } finally {
+                      filterAnnouncements();
+                    }
+                  }
+            
+                  // Helpers
+                  function escapeHtml(s) {
+                    if (s == null) return '';
+                    return String(s)
+                      .replace(/&/g, '&amp;')
+                      .replace(/</g, '&lt;')
+                      .replace(/>/g, '&gt;')
+                      .replace(/"/g, '&quot;')
+                      .replace(/'/g, '&#39;');
+                  }
+            
+                  // Event delegation for table actions
+                  tbody.addEventListener('click', async (ev) => {
+                    const tr = ev.target.closest('tr');
+                    if (!tr) return;
+                    const id = tr.getAttribute('data-id');
+                    if (ev.target.classList.contains('edit')) {
+                      const ann = allAnnouncements.find(a => a.id === id);
+                      showAnnouncementModal(ann);
+                      return;
+                    }
+                    if (ev.target.classList.contains('delete')) {
+                      if (!confirm('Delete this announcement?')) return;
+                      allAnnouncements = allAnnouncements.filter(a => a.id !== id);
+                      // attempt backend delete
+                      try { await fetch('/admin/api/announcements/' + encodeURIComponent(id), { method: 'DELETE' }); } catch(e){ /* ignore */ }
+                      filterAnnouncements();
+                      return;
+                    }
+                    if (ev.target.classList.contains('notify')) {
+                      alert('Notification sent (demo).');
+                      return;
+                    }
+                  });
+            
+                  // Form submit (create/update)
+                  document.getElementById('announcement-form').addEventListener('submit', async (ev) => {
+                    ev.preventDefault();
+                    const id = document.getElementById('announcement-id').value || String(Date.now());
+                    const type = document.getElementById('announcement-type').value;
+                    const body = document.getElementById('announcement-body').value.trim();
+                    if (!body) { alert('Message is required'); return; }
+            
+                    const item = { id, type, body, date: new Date().toISOString().slice(0,10), status: 'pending' };
+                    const exists = allAnnouncements.find(a => a.id === id);
+                    if (exists) {
+                      Object.assign(exists, item);
+                    } else {
+                      allAnnouncements.unshift(item);
+                    }
+            
+                    // attempt to persist to backend
+                    try {
+                      await fetch('/admin/api/announcements' + (exists ? '/' + encodeURIComponent(id) : ''), {
+                        method: exists ? 'PUT' : 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(item)
+                      });
+                    } catch (err) {
+                      console.warn('API save failed, changes kept in-memory for demo.', err);
+                    }
+            
+                    hideAnnouncementModal();
+                    filterAnnouncements();
+                  });
+            
+                  document.getElementById('announcement-cancel').addEventListener('click', hideAnnouncementModal);
+                  document.getElementById('btn-add').addEventListener('click', () => showAnnouncementModal(null));
+                  typeFilter.addEventListener('change', filterAnnouncements);
+                  searchInput.addEventListener('input', filterAnnouncements);
+            
+                  // Signout handler (safe)
+                  document.getElementById('signout').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    if (window.brgyAdmin && typeof window.brgyAdmin.logout === 'function') {
+                      try { window.brgyAdmin.logout(); } catch {}
+                    }
+                    window.location.href = '/admin/index.html';
+                  });
+            
+                  // Initial load
+                  document.addEventListener('DOMContentLoaded', () => {
+                    loadAnnouncements();
+                  });
+                })();
+              </script>
+            </body>
+            </html>   return;
         }
 
         const rows = filteredAnnouncements

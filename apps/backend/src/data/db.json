@@ -1,0 +1,218 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "username": "admin",
+      "password": "liongadmin",
+      "name": "Barangay Administrator",
+      "address": "Barangay Hall",
+      "phone": "09120000000",
+      "email": "admin@barangay.local",
+      "purok": "Hall",
+      "occupation": "Administrator",
+      "role": "admin",
+      "active": true
+    },
+    {
+      "id": 2,
+      "username": "juan",
+      "password": "password123",
+      "name": "Juan Dela Cruz",
+      "address": "Blk 1 Lot 5, Purok 2",
+      "phone": "09123456789",
+      "email": "juan@example.com",
+      "purok": "2",
+      "occupation": "Teacher",
+      "role": "resident",
+      "active": true
+    },
+    {
+      "id": 3,
+      "username": "maria",
+      "password": "password123",
+      "name": "Maria Clara",
+      "address": "Blk 3 Lot 2, Purok 3",
+      "phone": "09876543210",
+      "email": "maria@example.com",
+      "purok": "3",
+      "occupation": "Nurse",
+      "role": "resident",
+      "active": true
+    },
+    {
+      "id": 4,
+      "username": "jose",
+      "password": "password123",
+      "name": "Jose Rizal",
+      "address": "Poblacion, Purok 1",
+      "phone": "09111111111",
+      "email": "jose@example.com",
+      "purok": "1",
+      "occupation": "Engineer",
+      "role": "resident",
+      "active": true
+    }
+  ],
+  "registrationRequests": [
+    {
+      "id": 1,
+      "fullName": "Pedro Penduko",
+      "birthDate": "1995-03-05",
+      "address": "Blk 8 Lot 12, Purok 4",
+      "phone": "09171234567",
+      "email": "pedro@example.com",
+      "purok": "4",
+      "occupation": "Driver",
+      "username": "pedro",
+      "password": "pedroPass1!",
+      "reason": "New resident registration",
+      "status": "Pending",
+      "submittedAt": "2025-01-20T06:00:00.000Z"
+    }
+  ],
+  "certifications": [
+    {
+      "id": 1023,
+      "name": "Juan Dela Cruz",
+      "type": "Residency",
+      "purpose": "Employment",
+      "status": "Pending",
+      "submittedBy": "juan",
+      "submittedAt": "2025-01-18T08:00:00.000Z"
+    },
+    {
+      "id": 1022,
+      "name": "Maria Clara",
+      "type": "Clearance",
+      "purpose": "Business",
+      "status": "Approved",
+      "submittedBy": "maria",
+      "submittedAt": "2025-01-15T02:00:00.000Z"
+    }
+  ],
+  "complaints": [
+    {
+      "id": 335,
+      "category": "Noise",
+      "location": "Purok 2",
+      "details": "Loud music past midnight for three nights.",
+      "status": "Open",
+      "complainant": "juan",
+      "contact": "09123456789",
+      "submittedAt": "2025-01-17T15:30:00.000Z"
+    },
+    {
+      "id": 334,
+      "category": "Garbage",
+      "location": "Purok 5",
+      "details": "Uncollected garbage for 3 days.",
+      "status": "In Progress",
+      "complainant": "maria",
+      "contact": "09876543210",
+      "submittedAt": "2025-01-16T10:15:00.000Z"
+    }
+  ],
+  "announcements": [
+    {
+      "id": 77,
+      "title": "Emergency Drill",
+      "type": "Emergency",
+      "body": "Earthquake and fire drill for all residents and establishments.",
+      "date": "2025-01-25",
+      "createdAt": "2025-01-18T00:00:00.000Z"
+    },
+    {
+      "id": 76,
+      "title": "Clean-up Drive",
+      "type": "Event",
+      "body": "Barangay-wide clean-up drive. Bring cleaning tools.",
+      "date": "2025-01-22",
+      "createdAt": "2025-01-17T00:00:00.000Z"
+    }
+  ],
+  "accidents": [
+    {
+      "id": 9001,
+      "type": "Road",
+      "location": "Purok 3 Junction",
+      "datetime": "2025-01-19T18:10:00.000Z",
+      "severity": "Moderate"
+    },
+    {
+      "id": 8990,
+      "type": "Fire",
+      "location": "Purok 1",
+      "datetime": "2025-01-17T02:30:00.000Z",
+      "severity": "High"
+    }
+  ],
+  "residents": [
+    {
+      "id": "R-101",
+      "name": "Juan Dela Cruz",
+      "age": 34,
+      "purok": "2",
+      "address": "Blk 1 Lot 5",
+      "phone": "09123456789",
+      "email": "juan@example.com",
+      "archived": false,
+      "registeredAt": "2024-12-15T00:00:00.000Z"
+    },
+    {
+      "id": "R-102",
+      "name": "Maria Clara",
+      "age": 28,
+      "purok": "3",
+      "address": "Blk 3 Lot 2",
+      "phone": "09876543210",
+      "email": "maria@example.com",
+      "archived": false,
+      "registeredAt": "2024-11-20T00:00:00.000Z"
+    },
+    {
+      "id": "R-103",
+      "name": "Jose Rizal",
+      "age": 31,
+      "purok": "1",
+      "address": "Poblacion",
+      "phone": "09111111111",
+      "email": "jose@example.com",
+      "archived": false,
+      "registeredAt": "2024-10-05T00:00:00.000Z"
+    }
+  ],
+  "messages": [
+    {
+      "id": 1,
+      "from": "juan",
+      "to": "Admin",
+      "message": "Good morning, I would like to follow up on my certificate request.",
+      "timestamp": "2025-01-19T01:00:00.000Z",
+      "read": false
+    },
+    {
+      "id": 2,
+      "from": "Admin",
+      "to": "juan",
+      "message": "Hi Juan, we are processing it and will update you today.",
+      "timestamp": "2025-01-19T02:00:00.000Z",
+      "isReply": true,
+      "threadId": 1,
+      "read": true
+    }
+  ],
+  "activity": [
+    {
+      "when": "2025-01-19T03:00:00.000Z",
+      "actor": "Admin",
+      "action": "Approved Maria Clara's clearance request"
+    },
+    {
+      "when": "2025-01-18T10:00:00.000Z",
+      "actor": "Admin",
+      "action": "Posted Emergency Drill announcement"
+    }
+  ],
+  "notifications": []
+}
+
